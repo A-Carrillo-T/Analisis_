@@ -1,0 +1,22 @@
+# Variables de entorno
+.env
+.env.*
+
+# Permitir ejemplos
+!.env.example
+
+# Dependencias
+node_modules/
+
+# Evidencias y respaldos
+uploads/
+backups/
+
+# Archivos comprimidos
+*.zip
+*.rar
+
+# Sistema / editors
+.DS_Store
+Thumbs.db
+.vscode/

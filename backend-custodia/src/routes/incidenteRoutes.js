@@ -1,0 +1,18 @@
+const express=require('express');
+const multer=require('multer');
+const fs=require('fs');
+const path=require('path');
+const router=express.Router();
+const c=require('../controllers/incidenteController');
+const {verificarToken,verificarPermiso}=require('../middlewares/authMiddleware');
+const {auditarConsulta}=require('../middlewares/auditoriaMiddleware');
+const dir=path.resolve('uploads/incidentes');fs.mkdirSync(dir,{recursive:true});
+const upload=multer({dest:dir,limits:{fileSize:Number(process.env.MAX_UPLOAD_MB||50)*1024*1024,files:5}});
+router.use(verificarToken);
+router.get('/',verificarPermiso('Incidentes','ver'),auditarConsulta('Incidentes','Consulta de incidentes'),c.obtenerIncidentes);
+router.get('/:id',verificarPermiso('Incidentes','ver'),auditarConsulta('Incidentes','Consulta de detalle de incidente'),c.obtenerIncidente);
+router.get('/:id/adjuntos/:idAdjunto/descargar',verificarPermiso('Incidentes','ver'),c.descargarAdjunto);
+router.post('/',verificarPermiso('Incidentes','crear'),upload.array('adjuntos',5),c.registrarIncidente);
+router.put('/:id',verificarPermiso('Incidentes','editar'),c.actualizarIncidente);
+router.put('/:id/cerrar',verificarPermiso('Incidentes','cerrar'),c.cerrarIncidente);
+module.exports=router;

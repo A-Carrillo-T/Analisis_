@@ -1,0 +1,4 @@
+require('dotenv').config({override:true});const fs=require('fs');const path=require('path');const{spawnSync}=require('child_process');
+function ejecutarBackup(){if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL no configurada');const dir=path.resolve(process.env.BACKUP_DIR||'backups');fs.mkdirSync(dir,{recursive:true});const stamp=new Date().toISOString().replace(/[:.]/g,'-');const file=path.join(dir,`custodia-${stamp}.dump`);const r=spawnSync(process.env.PG_DUMP_PATH||'pg_dump',['--dbname',process.env.DATABASE_URL,'--format=custom','--file',file],{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw new Error(`pg_dump terminó con código ${r.status}`);console.log(`✅ Respaldo creado: ${file}`);return file;}
+if(require.main===module){try{ejecutarBackup();}catch(e){console.error('❌ No se pudo crear el respaldo:',e.message);process.exit(1);}}
+module.exports={ejecutarBackup};

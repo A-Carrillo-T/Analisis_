@@ -1,0 +1,6 @@
+export function PageHeader({title,subtitle,actions}){return <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-7"><div><p className="text-xs uppercase tracking-[.18em] text-silver-mist mb-2">Sistema de Custodia</p><h1 className="text-3xl md:text-4xl font-medium">{title}</h1>{subtitle&&<p className="text-silver-mist mt-2">{subtitle}</p>}</div>{actions&&<div className="flex gap-2">{actions}</div>}</div>}
+export function Panel({children,className=''}){return <div className={`bg-liquid-kelp/70 border border-white/10 rounded-2xl p-5 ${className}`}>{children}</div>}
+export function Empty({children='No hay registros.'}){return <div className="text-center text-silver-mist py-10">{children}</div>}
+export function ErrorBox({message}){return message?<div className="bg-red-950/40 border border-red-400/30 text-red-100 rounded-lg p-3 mb-4 text-sm">{message}</div>:null}
+export function Field({label,children}){return <label className="block"><span className="block text-xs uppercase tracking-wider text-silver-mist mb-2">{label}</span>{children}</label>}
+export const inputClass='w-full bg-liquid-deep border border-white/10 rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#cbfffc]/70';

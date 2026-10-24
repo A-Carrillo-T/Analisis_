@@ -1,0 +1,11 @@
+const express=require('express');const router=express.Router();const multer=require('multer');const fs=require('fs');const path=require('path');const c=require('../controllers/evidenciaController');const {verificarToken,verificarPermiso}=require('../middlewares/authMiddleware');
+const {auditarConsulta}=require('../middlewares/auditoriaMiddleware');
+const dir=path.resolve('uploads/evidencias');fs.mkdirSync(dir,{recursive:true});
+const upload=multer({dest:dir,limits:{fileSize:Number(process.env.MAX_UPLOAD_MB||50)*1024*1024}});
+router.use(verificarToken);
+router.get('/',verificarPermiso('Evidencias','ver'),auditarConsulta('Evidencias','Consulta de evidencias'),c.listarEvidencias);
+router.get('/:id',verificarPermiso('Evidencias','ver'),auditarConsulta('Evidencias','Consulta de detalle de evidencia'),c.obtenerEvidencia);
+router.get('/:id/descargar',verificarPermiso('Evidencias','descargar'),c.descargarEvidencia);
+router.post('/',verificarPermiso('Evidencias','crear'),upload.single('archivo'),c.registrarEvidencia);
+router.put('/:id',verificarPermiso('Evidencias','editar'),c.actualizarEvidencia);
+module.exports=router;

@@ -1,0 +1,5 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('fs');const os=require('os');const path=require('path');const bcrypt=require('bcrypt');const{calcularHashSHA256}=require('../src/services/hashService');const{formatearCodigo}=require('../src/services/codigoService');const{crearPdfSimple}=require('../src/services/pdfService');
+test('SHA-256 produce 64 hex y valor conocido',async()=>{const f=path.join(os.tmpdir(),`custodia-${Date.now()}.txt`);fs.writeFileSync(f,'abc');const h=await calcularHashSHA256(f);fs.unlinkSync(f);assert.equal(h,'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');assert.equal(h.length,64);});
+test('bcrypt almacena hash con sal y valida contraseña',async()=>{const h=await bcrypt.hash('123456',10);assert.notEqual(h,'123456');assert.equal(await bcrypt.compare('123456',h),true);});
+test('códigos mantienen formato correlativo',()=>{assert.equal(formatearCodigo('EVD',2026,7),'EVD-2026-0007');});
+test('exportación genera un PDF válido',()=>{const b=crearPdfSimple('Prueba',['Linea 1','Linea 2']);assert.equal(b.subarray(0,5).toString(),'%PDF-');assert.ok(b.length>300);});

@@ -1,0 +1,24 @@
+const express=require('express');const cors=require('cors');require('dotenv').config({override:true});
+const app=express();
+app.set('trust proxy',1);
+app.disable('x-powered-by');
+if(process.env.REQUIRE_HTTPS==='true'){app.use((req,res,next)=>{const proto=req.headers['x-forwarded-proto'];if(req.secure||proto==='https')return next();return res.status(426).json({mensaje:'HTTPS es obligatorio en este entorno'});});}
+app.use(cors({origin:process.env.CORS_ORIGIN?process.env.CORS_ORIGIN.split(','):true,credentials:true}));
+app.use(express.json({limit:'2mb'}));app.use(express.urlencoded({extended:true,limit:'2mb'}));
+app.use('/api/auth',require('./routes/authRoutes'));
+app.use('/api/dashboard',require('./routes/dashboardRoutes'));
+app.use('/api/usuarios',require('./routes/usuarioRoutes'));
+app.use('/api/catalogos',require('./routes/catalogoRoutes'));
+app.use('/api/seguridad',require('./routes/seguridadRoutes'));
+app.use('/api/incidentes',require('./routes/incidenteRoutes'));
+app.use('/api/evidencias',require('./routes/evidenciaRoutes'));
+app.use('/api/custodia',require('./routes/custodiaRoutes'));
+app.use('/api/solicitudes',require('./routes/solicitudRoutes'));
+app.use('/api/copias',require('./routes/copiaRoutes'));
+app.use('/api/analisis',require('./routes/analisisRoutes'));
+app.use('/api/alertas',require('./routes/alertaRoutes'));
+app.use('/api/auditoria',require('./routes/auditoriaRoutes'));
+app.use('/api/reportes',require('./routes/reporteRoutes'));
+app.get('/api/health',(_req,res)=>res.json({ok:true,servicio:'custodia-api'}));
+app.use((err,_req,res,_next)=>{console.error(err);if(err?.code==='LIMIT_FILE_SIZE')return res.status(413).json({mensaje:'El archivo supera el tamaño máximo permitido'});if(err?.code==='LIMIT_FILE_COUNT')return res.status(413).json({mensaje:'Se excedió la cantidad máxima de archivos'});res.status(500).json({mensaje:'Error interno del servidor'});});
+const PORT=process.env.PORT||3000;app.listen(PORT,()=>{console.log(`Servidor API REST ejecutándose en el puerto ${PORT}`);require('./services/backupService').iniciarRespaldos();});
