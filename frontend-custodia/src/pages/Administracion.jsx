@@ -1,12 +1,87 @@
 import {useEffect,useMemo,useState} from 'react';import api from '../services/api';import {Button} from '../components/ui/Button';import {Modal} from '../components/ui/Modal';import {PageHeader,Panel,Empty,ErrorBox,Field,inputClass} from '../components/ui/Page';import {Table} from '../components/ui/Table';
 const usuarioVacio={nombre:'',apellido:'',correo:'',password:'',id_rol:'',area:'',estado:'activo'};
-export function Administracion(){const[tab,setTab]=useState('usuarios');const[usuarios,setUsuarios]=useState([]);const[roles,setRoles]=useState([]);const[permisos,setPermisos]=useState([]);const[catalogos,setCatalogos]=useState([]);const[modalUsuario,setModalUsuario]=useState(null);const[modalCatalogo,setModalCatalogo]=useState(null);const[rolSel,setRolSel]=useState('');const[permisosRol,setPermisosRol]=useState([]);const[error,setError]=useState('');const cargar=async()=>{try{const[u,r,p,c]=await Promise.all([api.get('/usuarios'),api.get('/seguridad/roles'),api.get('/seguridad/permisos'),api.get('/catalogos')]);setUsuarios(u.data);setRoles(r.data);setPermisos(p.data);setCatalogos(c.data);if(!rolSel&&r.data.length)setRolSel(String(r.data[0].id_rol))}catch(e){setError(e.response?.data?.mensaje||'No se pudo cargar administración')}};useEffect(()=>{cargar()},[]);useEffect(()=>{if(rolSel)api.get(`/seguridad/roles/${rolSel}/permisos`).then(r=>setPermisosRol(r.data)).catch(()=>setPermisosRol([]))},[rolSel]);const areas=useMemo(()=>catalogos.filter(c=>c.tipo==='area'&&c.estado==='activo'),[catalogos]);
+export function Administracion(){
+    const[tab,setTab]=useState('usuarios');
+    const[usuarios,setUsuarios]=useState([]);
+    const[roles,setRoles]=useState([]);
+    const[permisos,setPermisos]=useState([]);
+    const[catalogos,setCatalogos]=useState([]);
+    const[modalUsuario,setModalUsuario]=useState(null);
+    const[modalCatalogo,setModalCatalogo]=useState(null);
+    const[rolSel,setRolSel]=useState('');
+    const[permisosRol,setPermisosRol]=useState([]);
+    const[error,setError]=useState('');
+    const cargar=async()=>{
+        try{
+            const[u,r,p,c]=await Promise.all([
+                api.get('/usuarios'),
+                api.get('/seguridad/roles'),
+                api.get('/seguridad/permisos'),
+                api.get('/catalogos')]);
+            setUsuarios(u.data);
+            setRoles(r.data);
+            setPermisos(p.data);
+            setCatalogos(c.data);
+            if(!rolSel&&r.data.length) setRolSel(String(r.data[0].id_rol))
+        } catch(e) { 
+            setError(e.response?.data?.mensaje||'No se pudo cargar administración')}};useEffect(()=>{cargar()},[]);useEffect(()=>{if(rolSel)api.get(`/seguridad/roles/${rolSel}/permisos`).then(r=>setPermisosRol(r.data)).catch(()=>setPermisosRol([]))},[rolSel]);const areas=useMemo(()=>catalogos.filter(c=>c.tipo==='area'&&c.estado==='activo'),[catalogos]);
 const guardarUsuario=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const data={nombre:f.get('nombre'),apellido:f.get('apellido'),correo:f.get('correo'),id_rol:Number(f.get('id_rol')),area:f.get('area')||null,estado:f.get('estado')};if(f.get('password'))data.password=f.get('password');try{if(modalUsuario?.id_usuario)await api.put(`/usuarios/${modalUsuario.id_usuario}`,data);else await api.post('/usuarios',data);setModalUsuario(null);cargar()}catch(e){alert(e.response?.data?.mensaje||'No se pudo guardar usuario')}};
 const guardarCatalogo=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const data={tipo:f.get('tipo'),valor:f.get('valor'),descripcion:f.get('descripcion'),estado:f.get('estado')};try{if(modalCatalogo?.id_catalogo)await api.put(`/catalogos/${modalCatalogo.id_catalogo}`,data);else await api.post('/catalogos',data);setModalCatalogo(null);cargar()}catch(e){alert(e.response?.data?.mensaje||'No se pudo guardar catálogo')}};
 const nuevoRol=async()=>{const nombre=prompt('Nombre del nuevo rol:');if(!nombre)return;const descripcion=prompt('Descripción:','');try{await api.post('/seguridad/roles',{nombre,descripcion});cargar()}catch(e){alert(e.response?.data?.mensaje||'Error al crear rol')}};
 const nuevoPermiso=async()=>{const modulo=prompt('Módulo:');if(!modulo)return;const accion=prompt('Acción:');if(!accion)return;try{await api.post('/seguridad/permisos',{modulo,accion,descripcion:prompt('Descripción:','')});cargar()}catch(e){alert(e.response?.data?.mensaje||'Error al crear permiso')}};
 const togglePermiso=async p=>{const tiene=permisosRol.some(x=>x.id_permiso===p.id_permiso);try{if(tiene)await api.delete(`/seguridad/roles/${rolSel}/permisos/${p.id_permiso}`);else await api.post('/seguridad/asignar',{id_rol:Number(rolSel),id_permiso:p.id_permiso});const r=await api.get(`/seguridad/roles/${rolSel}/permisos`);setPermisosRol(r.data)}catch(e){alert(e.response?.data?.mensaje||'No se pudo cambiar el permiso')}};
 const userCols=[{key:'id_usuario',label:'ID'},{key:'nombre',label:'Nombre',render:r=>`${r.nombre} ${r.apellido}`},{key:'correo',label:'Correo'},{key:'rol_nombre',label:'Rol'},{key:'area',label:'Área'},{key:'estado',label:'Estado'},{key:'acciones',label:'Acciones',render:r=><button className="text-[#cbfffc]" onClick={()=>setModalUsuario(r)}>Editar</button>}];const catCols=[{key:'id_catalogo',label:'ID'},{key:'tipo',label:'Tipo'},{key:'valor',label:'Valor'},{key:'descripcion',label:'Descripción'},{key:'estado',label:'Estado'},{key:'acciones',label:'Acciones',render:r=><button className="text-[#cbfffc]" onClick={()=>setModalCatalogo(r)}>Editar</button>}];
-return <><PageHeader title="Administración" subtitle="Usuarios, áreas, catálogos y matriz RBAC estricta."/><ErrorBox message={error}/><div className="flex gap-2 mb-4 flex-wrap">{['usuarios','catalogos','permisos'].map(t=><button key={t} onClick={()=>setTab(t)} className={`px-4 py-2 rounded-lg capitalize ${tab===t?'bg-liquid-kelp':'bg-liquid-deep text-silver-mist'}`}>{t}</button>)}</div>{tab==='usuarios'&&<><div className="flex justify-end mb-3"><Button onClick={()=>setModalUsuario(usuarioVacio)}>Nuevo usuario</Button></div><Panel>{usuarios.length?<Table columns={userCols} rows={usuarios} keyField="id_usuario"/>:<Empty/>}</Panel></>}{tab==='catalogos'&&<><div className="flex justify-end mb-3"><Button onClick={()=>setModalCatalogo({tipo:'',valor:'',descripcion:'',estado:'activo'})}>Nuevo catálogo</Button></div><Panel>{catalogos.length?<Table columns={catCols} rows={catalogos} keyField="id_catalogo"/>:<Empty/>}</Panel></>}{tab==='permisos'&&<><div className="flex justify-between gap-3 flex-wrap mb-4"><Field label="Rol a configurar"><select className={`${inputClass} min-w-[280px]`} value={rolSel} onChange={e=>setRolSel(e.target.value)}>{roles.map(r=><option key={r.id_rol} value={r.id_rol}>{r.id_rol} - {r.nombre}</option>)}</select></Field><div className="flex gap-2 items-end"><Button variant="ghost" onClick={nuevoRol}>Nuevo rol</Button><Button variant="ghost" onClick={nuevoPermiso}>Nuevo permiso</Button></div></div><Panel><div className="text-sm text-silver-mist mb-4">Los cambios se aplican directamente a <code>rol_permiso</code>. No existe bypass del Administrador.</div><div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">{permisos.map(p=>{const on=permisosRol.some(x=>x.id_permiso===p.id_permiso);return <label key={p.id_permiso} className={`flex gap-3 items-start border rounded-lg p-3 cursor-pointer ${on?'border-emerald-400/30 bg-emerald-500/5':'border-white/10'}`}><input type="checkbox" checked={on} onChange={()=>togglePermiso(p)} className="mt-1"/><span><strong>{p.modulo}.{p.accion}</strong><span className="block text-xs text-silver-mist">{p.descripcion}</span></span></label>})}</div></Panel></>}
+return <>
+<PageHeader title="Administración" subtitle="Usuarios, áreas, catálogos y matriz RBAC estricta."/>
+<ErrorBox message={error}/>
+<div className="flex gap-2 mb-4 flex-wrap">
+    {['usuarios',/*'catalogos',*/'permisos'].map(t=>
+        <button key={t} onClick={()=>setTab(t)} 
+            className={`px-4 py-2 rounded-lg capitalize ${tab===t?'bg-liquid-kelp':'bg-liquid-deep text-silver-mist'}`}>{t}</button>)}
+</div>{tab==='usuarios'&&<>
+<div className="flex justify-end mb-3">
+    <Button onClick={()=>setModalUsuario(usuarioVacio)}>Nuevo usuario</Button>
+</div>
+<Panel>
+    {usuarios.length?<Table columns={userCols} rows={usuarios} keyField="id_usuario"/>:<Empty/>}
+</Panel></>}
+{/* Catalogos 
+{tab==='catalogos'&&<>
+    <div className="flex justify-end mb-3">
+        <Button onClick={()=>setModalCatalogo({tipo:'',valor:'',descripcion:'',estado:'activo'})}>Nuevo catálogo</Button>
+    </div>
+    <Panel>
+        {catalogos.length?<Table columns={catCols} rows={catalogos} keyField="id_catalogo"/>:<Empty/>}
+    </Panel></>
+}
+*/}
+{tab==='permisos'&&<>
+    <div className="flex justify-between gap-3 flex-wrap mb-4">
+        <Field label="Rol a configurar">
+            <select className={`${inputClass} min-w-[280px]`} value={rolSel} onChange={e=>setRolSel(e.target.value)}>{roles.map(r=><option key={r.id_rol} value={r.id_rol}>{r.id_rol} - {r.nombre}</option>)}</select>
+        </Field>
+        <div className="flex gap-2 items-end">
+            <Button variant="ghost" onClick={nuevoRol}>Nuevo rol</Button>
+            <Button variant="ghost" onClick={nuevoPermiso}>Nuevo permiso</Button>
+        </div>
+    </div>
+    <Panel>
+        <div className="text-sm text-silver-mist mb-4">Los cambios se aplican directamente a <code>rol_permiso</code>. No existe bypass del Administrador.</div>
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {permisos.map(p=>{
+                const on=permisosRol.some(x=>x.id_permiso===p.id_permiso);
+                return (
+                    <label key={p.id_permiso} className={`flex gap-3 items-start border rounded-lg p-3 cursor-pointer ${on?'border-emerald-400/30 bg-emerald-500/5':'border-white/10'}`}>
+                        <input type="checkbox" checked={on} onChange={()=>togglePermiso(p)} className="mt-1"/>
+                        <span>
+                            <strong>{p.modulo}.{p.accion}</strong>
+                            <span className="block text-xs text-silver-mist">{p.descripcion}</span>
+                        </span>
+                    </label>
+                );
+            })}
+        </div>
+    </Panel>
+</>}
 {modalUsuario&&<Modal title={modalUsuario.id_usuario?'Editar usuario':'Crear usuario'} onClose={()=>setModalUsuario(null)}><form onSubmit={guardarUsuario} className="grid md:grid-cols-2 gap-4"><Field label="Nombre"><input name="nombre" required defaultValue={modalUsuario.nombre} className={inputClass}/></Field><Field label="Apellido"><input name="apellido" required defaultValue={modalUsuario.apellido} className={inputClass}/></Field><Field label="Correo"><input name="correo" type="email" required defaultValue={modalUsuario.correo} className={inputClass}/></Field><Field label={modalUsuario.id_usuario?'Nueva contraseña (opcional)':'Contraseña'}><input name="password" type="password" required={!modalUsuario.id_usuario} minLength="6" className={inputClass}/></Field><Field label="Rol"><select name="id_rol" required defaultValue={modalUsuario.id_rol} className={inputClass}><option value="">Seleccione</option>{roles.map(r=><option key={r.id_rol} value={r.id_rol}>{r.nombre}</option>)}</select></Field><Field label="Área / departamento"><select name="area" defaultValue={modalUsuario.area||''} className={inputClass}><option value="">Sin asignar</option>{areas.map(a=><option key={a.id_catalogo} value={a.valor}>{a.valor}</option>)}</select></Field><Field label="Estado"><select name="estado" defaultValue={modalUsuario.estado||'activo'} className={inputClass}><option>activo</option><option>inactivo</option><option>bloqueado</option></select></Field><div className="md:col-span-2 flex justify-end"><Button type="submit">Guardar usuario</Button></div></form></Modal>}
 {modalCatalogo&&<Modal title={modalCatalogo.id_catalogo?'Editar catálogo':'Nuevo catálogo'} onClose={()=>setModalCatalogo(null)}><form onSubmit={guardarCatalogo} className="space-y-4"><Field label="Tipo"><input name="tipo" required defaultValue={modalCatalogo.tipo} className={inputClass}/></Field><Field label="Valor"><input name="valor" required defaultValue={modalCatalogo.valor} className={inputClass}/></Field><Field label="Descripción"><textarea name="descripcion" rows="3" defaultValue={modalCatalogo.descripcion||''} className={inputClass}/></Field><Field label="Estado"><select name="estado" defaultValue={modalCatalogo.estado||'activo'} className={inputClass}><option>activo</option><option>inactivo</option></select></Field><div className="flex justify-end"><Button type="submit">Guardar catálogo</Button></div></form></Modal>}</>}
